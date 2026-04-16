@@ -31,6 +31,33 @@ function boxLabel(det) {
   return conf == null ? label : `${label} ${Number(conf).toFixed(2)}`;
 }
 
+function ocrItemsFromDetections(detections) {
+  const items = [];
+  for (const det of detections) {
+    const label = det?.category?.label || det?.label || "unknown";
+    if (det?.ocrText) {
+      items.push({
+        label,
+        text: det.ocrText,
+        rect: det.boundingBox || det.bbox,
+        source: "ocrText",
+      });
+    }
+    if (Array.isArray(det?.ocrBlocks)) {
+      for (const block of det.ocrBlocks) {
+        if (!block?.text) continue;
+        items.push({
+          label,
+          text: block.text,
+          rect: block.rect || det.boundingBox || det.bbox,
+          source: "ocrBlocks",
+        });
+      }
+    }
+  }
+  return items;
+}
+
 function getBox(det) {
   const box = det?.boundingBox || det?.bbox || {};
   if (Array.isArray(box)) {
@@ -53,6 +80,9 @@ function App() {
   const [frameOffset, setFrameOffset] = useState(0);
   const [selectedFrame, setSelectedFrame] = useState(null);
   const [detections, setDetections] = useState([]);
+  const [frameDataLoaded, setFrameDataLoaded] = useState(false);
+  const [showDetections, setShowDetections] = useState(true);
+  const [showOcr, setShowOcr] = useState(true);
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
   const [labelFilter, setLabelFilter] = useState("");
   const [error, setError] = useState("");
@@ -114,6 +144,7 @@ function App() {
 
   useEffect(() => {
     setDetections([]);
+    setFrameDataLoaded(false);
     setLabelFilter("");
   }, [selectedRunId, selectedFrame]);
 
@@ -127,6 +158,7 @@ function App() {
         )}`,
       );
       setDetections(data.detections || []);
+      setFrameDataLoaded(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -149,6 +181,10 @@ function App() {
   const filteredDetections = labelFilter
     ? detections.filter((det) => (det?.category?.label || det?.label) === labelFilter)
     : detections;
+  const ocrItems = ocrItemsFromDetections(detections);
+  const filteredOcrItems = labelFilter
+    ? ocrItems.filter((item) => item.label === labelFilter)
+    : ocrItems;
 
   const gtSegments = debugData?.annotation?.segments || [];
   const gtStats = debugData?.annotation?.match_stats || [];
@@ -421,7 +457,19 @@ function App() {
                   <h3>Detections</h3>
                   <div className="pager">
                     <button disabled={!selectedFrame} onClick={loadDetections}>
-                      Load Detections
+                      {frameDataLoaded ? "Reload Frame Data" : "Load Frame Data"}
+                    </button>
+                    <button
+                      className={showDetections ? "toggle active-toggle" : "toggle"}
+                      onClick={() => setShowDetections(!showDetections)}
+                    >
+                      Detections
+                    </button>
+                    <button
+                      className={showOcr ? "toggle active-toggle" : "toggle"}
+                      onClick={() => setShowOcr(!showOcr)}
+                    >
+                      OCR
                     </button>
                     <label>
                       Label
@@ -471,7 +519,7 @@ function App() {
                             })
                           }
                         />
-                        {filteredDetections.map((det, index) => {
+                        {showDetections ? filteredDetections.map((det, index) => {
                           const box = getBox(det);
                           const left = (Number(box.left || 0) / imageSize.width) * 100;
                           const top = (Number(box.top || 0) / imageSize.height) * 100;
@@ -498,7 +546,35 @@ function App() {
                               <span>{boxLabel(det)}</span>
                             </div>
                           );
-                        })}
+                        }) : null}
+                        {showOcr ? filteredOcrItems.map((item, index) => {
+                          const box = getBox({ boundingBox: item.rect });
+                          const left = (Number(box.left || 0) / imageSize.width) * 100;
+                          const top = (Number(box.top || 0) / imageSize.height) * 100;
+                          const width =
+                            ((Number(box.right || 0) - Number(box.left || 0)) /
+                              imageSize.width) *
+                            100;
+                          const height =
+                            ((Number(box.bottom || 0) - Number(box.top || 0)) /
+                              imageSize.height) *
+                            100;
+                          return (
+                            <div
+                              className="ocr-box"
+                              key={`${item.label}_${item.text}_${index}`}
+                              style={{
+                                left: `${left}%`,
+                                top: `${top}%`,
+                                width: `${width}%`,
+                                height: `${height}%`,
+                              }}
+                              title={`${item.label}: ${item.text}`}
+                            >
+                              <span>{item.text}</span>
+                            </div>
+                          );
+                        }) : null}
                       </>
                     ) : null}
                   </div>
@@ -507,10 +583,29 @@ function App() {
                     <strong>
                       {selectedFrame ? `${selectedFrame.index} ${selectedFrame.name}` : "No frame"}
                     </strong>
-                    <span>{number(filteredDetections.length)} detections</span>
-                    {filteredDetections.slice(0, 80).map((det, index) => (
-                      <div key={index}>{boxLabel(det)}</div>
-                    ))}
+                    <span>
+                      {number(filteredDetections.length)} detections,{" "}
+                      {number(filteredOcrItems.length)} OCR items
+                    </span>
+                    {!frameDataLoaded ? <div>Click Load Frame Data.</div> : null}
+                    {showDetections ? (
+                      <>
+                        <b>Detections</b>
+                        {filteredDetections.slice(0, 80).map((det, index) => (
+                          <div key={`det_${index}`}>{boxLabel(det)}</div>
+                        ))}
+                      </>
+                    ) : null}
+                    {showOcr ? (
+                      <>
+                        <b>OCR</b>
+                        {filteredOcrItems.slice(0, 120).map((item, index) => (
+                          <div key={`ocr_${index}`}>
+                            {item.label}: {item.text}
+                          </div>
+                        ))}
+                      </>
+                    ) : null}
                   </div>
                 </div>
 

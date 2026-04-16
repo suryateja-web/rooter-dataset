@@ -43,6 +43,11 @@ button:disabled {
   cursor: default;
 }
 
+.toggle.active-toggle {
+  background: #000;
+  color: #fff;
+}
+
 main {
   padding: 10px;
   width: 100%;
@@ -289,7 +294,8 @@ tbody tr.active {
   width: 100%;
 }
 
-.bbox {
+.bbox,
+.ocr-box {
   border: 2px solid #000;
   line-height: 1;
   min-height: 8px;
@@ -297,7 +303,12 @@ tbody tr.active {
   position: absolute;
 }
 
-.bbox span {
+.ocr-box {
+  border-style: dashed;
+}
+
+.bbox span,
+.ocr-box span {
   background: #000;
   color: #fff;
   display: inline-block;
@@ -379,4 +390,3 @@ figcaption {
     width: 100%;
   }
 }
-
