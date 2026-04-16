@@ -30,6 +30,21 @@ Regenerate the manifest after adding new raw sessions:
 python3 /home/ec2-user/dataset/ingest_raw_sessions.py
 ```
 
+Run the dataset visualizer:
+
+```bash
+cd /home/ec2-user/dataset/visualizer
+npm install
+npm run build
+npm start
+```
+
+Open:
+
+```text
+http://localhost:4100
+```
+
 Current convention:
 
 - app runs under `paramveer_testing/*` are tagged as `latest_model`
