@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+
+# Raw media and phone outputs are too large/noisy for git.
+# Keep them in S3/local storage; this repo tracks the reproducibility layer.
+raw_data/
+work/
+artifacts/
+
+# Local SQLite database, if we add one later.
+*.db
+*.sqlite
+*.sqlite3
+
