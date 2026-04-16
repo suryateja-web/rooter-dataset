@@ -6,6 +6,8 @@ visualizer/node_modules/
 visualizer/dist/
 annotator/node_modules/
 annotator/dist/
+debugger/node_modules/
+debugger/dist/
 
 # Raw media and phone outputs are too large/noisy for git.
 # Keep them in S3/local storage; this repo tracks the reproducibility layer.

@@ -66,6 +66,24 @@ Annotation JSON files are saved under:
 annotations/<session_id>.json
 ```
 
+Run the dataset debugger:
+
+```bash
+cd /home/ec2-user/dataset/debugger
+npm install
+npm run build
+npm start
+```
+
+Open:
+
+```text
+http://localhost:4300
+```
+
+The debugger compares MLflow run artifacts with annotation JSON and raw frame
+detections.
+
 Current convention:
 
 - app runs under `paramveer_testing/*` are tagged as `latest_model`
