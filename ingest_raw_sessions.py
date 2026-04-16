@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build a small manifest for raw debug-app frame sessions.
 
-This does not normalize detections yet. It only records what exists, where it
-lives, and which model family produced each raw mobile JSON output.
+Frames are the dataset. Raw mobile JSON files are app runs attached to those
+frames. This script does not normalize detections or create annotations yet.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
-MODEL_FAMILY_BY_TOP_FOLDER = {
+APP_RUN_MODEL_FAMILY_BY_COLLECTION = {
     "1April": "bad_iou_model",
     "20march": "bad_iou_model",
     "2april": "bad_iou_model",
@@ -107,7 +107,10 @@ def build_manifest(raw_root: Path) -> dict[str, Any]:
     for session_dir in find_session_dirs(raw_root):
         relative_session = session_dir.relative_to(raw_root)
         collection_folder = relative_session.parts[0]
-        model_family = MODEL_FAMILY_BY_TOP_FOLDER.get(collection_folder, "unknown")
+        app_run_model_family = APP_RUN_MODEL_FAMILY_BY_COLLECTION.get(
+            collection_folder,
+            "unknown",
+        )
 
         frames_dir = session_dir / "CAPTURED_FRAMES"
         frames = sorted(
@@ -118,18 +121,20 @@ def build_manifest(raw_root: Path) -> dict[str, Any]:
         frame_names = {path.name for path in frames}
 
         session_id = f"session_{slug(str(relative_session))}"
-        raw_outputs = []
+        app_runs = []
 
         for json_path in sorted(session_dir.glob("*.json")):
-            run_id = f"raw_{slug(str(relative_session))}_{slug(json_path.stem)}"
-            output = {
+            run_id = f"app_run_{slug(str(relative_session))}_{slug(json_path.stem)}"
+            app_run = {
                 "run_id": run_id,
+                "run_type": "app_detection_ocr",
                 "source": "mobile_debug_app",
-                "model_family": model_family,
+                "detector_model_family": app_run_model_family,
+                "ocr_model_family": app_run_model_family,
                 "algo_variant": infer_algo_variant(json_path),
                 **read_json_summary(json_path, frame_names),
             }
-            raw_outputs.append(output)
+            app_runs.append(app_run)
 
         sessions.append(
             {
@@ -138,11 +143,14 @@ def build_manifest(raw_root: Path) -> dict[str, Any]:
                 "collection_folder": collection_folder,
                 "relative_path": str(relative_session),
                 "frames_path": str(frames_dir),
-                "model_family": model_family,
                 "frame_count": len(frames),
                 "first_frame": frames[0].name if frames else None,
                 "last_frame": frames[-1].name if frames else None,
-                "raw_outputs": raw_outputs,
+                "annotations": {
+                    "segments": [],
+                    "match_stats": [],
+                },
+                "app_runs": app_runs,
             }
         )
 
@@ -151,9 +159,10 @@ def build_manifest(raw_root: Path) -> dict[str, Any]:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "raw_root": str(raw_root),
         "notes": [
-            "Raw frame folders are treated as immutable sessions.",
-            "Raw mobile JSON files are treated as raw runs.",
-            "Normalized detections and stats should be written later as artifacts linked by run_id.",
+            "Raw frame folders are treated as immutable dataset sessions.",
+            "Session annotations such as match segments, kills, assists, and is_alive can be added later.",
+            "Raw mobile JSON files are treated as app detection/OCR runs attached to a session.",
+            "Postprocessor runs should consume app_runs and produce segment/stat artifacts tracked outside this dataset manifest.",
         ],
         "sessions": sessions,
     }
@@ -172,10 +181,10 @@ def main() -> None:
     out_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
     session_count = len(manifest["sessions"])
-    raw_run_count = sum(len(session["raw_outputs"]) for session in manifest["sessions"])
+    app_run_count = sum(len(session["app_runs"]) for session in manifest["sessions"])
     frame_count = sum(session["frame_count"] for session in manifest["sessions"])
     print(f"Wrote {out_path}")
-    print(f"sessions={session_count} raw_runs={raw_run_count} frames={frame_count}")
+    print(f"sessions={session_count} app_runs={app_run_count} frames={frame_count}")
 
 
 if __name__ == "__main__":

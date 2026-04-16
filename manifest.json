@@ -1,11 +1,12 @@
 {
   "manifest_version": 1,
-  "generated_at": "2026-04-16T16:20:38.252509+00:00",
+  "generated_at": "2026-04-16T16:36:30.508141+00:00",
   "raw_root": "/home/ec2-user/dataset/raw_data",
   "notes": [
-    "Raw frame folders are treated as immutable sessions.",
-    "Raw mobile JSON files are treated as raw runs.",
-    "Normalized detections and stats should be written later as artifacts linked by run_id."
+    "Raw frame folders are treated as immutable dataset sessions.",
+    "Session annotations such as match segments, kills, assists, and is_alive can be added later.",
+    "Raw mobile JSON files are treated as app detection/OCR runs attached to a session.",
+    "Postprocessor runs should consume app_runs and produce segment/stat artifacts tracked outside this dataset manifest."
   ],
   "sessions": [
     {
@@ -14,15 +15,20 @@
       "collection_folder": "1April",
       "relative_path": "1April",
       "frames_path": "/home/ec2-user/dataset/raw_data/1April/CAPTURED_FRAMES",
-      "model_family": "bad_iou_model",
       "frame_count": 2683,
       "first_frame": "1775044981859.jpeg",
       "last_frame": "1775046691086.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_1april_1775047497881",
+          "run_id": "app_run_1april_1775047497881",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/1April/1775047497881.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -40,15 +46,20 @@
       "collection_folder": "20march",
       "relative_path": "20march",
       "frames_path": "/home/ec2-user/dataset/raw_data/20march/CAPTURED_FRAMES",
-      "model_family": "bad_iou_model",
       "frame_count": 4956,
       "first_frame": "1773999072919.jpeg",
       "last_frame": "1774004578955.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_20march_1774006093434",
+          "run_id": "app_run_20march_1774006093434",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/20march/1774006093434.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -59,9 +70,11 @@
           "error": null
         },
         {
-          "run_id": "raw_20march_1774006093434_best_engine",
+          "run_id": "app_run_20march_1774006093434_best_engine",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "best_engine",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/20march/1774006093434_best_engine.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -72,9 +85,11 @@
           "error": null
         },
         {
-          "run_id": "raw_20march_1774006093434_best_tflite",
+          "run_id": "app_run_20march_1774006093434_best_tflite",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "best_tflite",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/20march/1774006093434_best_tflite.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -85,9 +100,11 @@
           "error": null
         },
         {
-          "run_id": "raw_20march_tflite",
+          "run_id": "app_run_20march_tflite",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "tflite",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/20march/tflite.json",
           "raw_output_format": "unknown",
@@ -105,15 +122,20 @@
       "collection_folder": "2april",
       "relative_path": "2april",
       "frames_path": "/home/ec2-user/dataset/raw_data/2april/CAPTURED_FRAMES",
-      "model_family": "bad_iou_model",
       "frame_count": 7077,
       "first_frame": "1775109018304.jpeg",
       "last_frame": "1775113932251.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_2april_1775115333035",
+          "run_id": "app_run_2april_1775115333035",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "bad_iou_model",
+          "detector_model_family": "bad_iou_model",
+          "ocr_model_family": "bad_iou_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/2april/1775115333035.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -131,15 +153,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/Document_from_yaGami",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 1994,
       "first_frame": "1776093445559.jpeg",
       "last_frame": "1776094723778.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_document_from_yagami_1776094970856",
+          "run_id": "app_run_paramveer_testing_document_from_yagami_1776094970856",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami/1776094970856.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -157,15 +184,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/Document_from_yaGami_1",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_1/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 1666,
       "first_frame": "1776095820698.jpeg",
       "last_frame": "1776096993436.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_document_from_yagami_1_1776097206490",
+          "run_id": "app_run_paramveer_testing_document_from_yagami_1_1776097206490",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_1/1776097206490.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -183,15 +215,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/Document_from_yaGami_2",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_2/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 2366,
       "first_frame": "1775805390026.jpeg",
       "last_frame": "1775806930309.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_document_from_yagami_2_1775807220006",
+          "run_id": "app_run_paramveer_testing_document_from_yagami_2_1775807220006",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_2/1775807220006.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -209,15 +246,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/Document_from_yaGami_3",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_3/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 1273,
       "first_frame": "1775804300644.jpeg",
       "last_frame": "1775805146605.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_document_from_yagami_3_1775805290404",
+          "run_id": "app_run_paramveer_testing_document_from_yagami_3_1775805290404",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/Document_from_yaGami_3/1775805290404.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -235,15 +277,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776006273304",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776006273304/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 3056,
       "first_frame": "1776003300059.jpeg",
       "last_frame": "1776005423992.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776006273304_1776006272176",
+          "run_id": "app_run_paramveer_testing_detection_results_1776006273304_1776006272176",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776006273304/1776006272176.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -261,15 +308,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776009882880",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776009882880/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 2221,
       "first_frame": "1776007622050.jpeg",
       "last_frame": "1776009149182.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776009882880_1776009881860",
+          "run_id": "app_run_paramveer_testing_detection_results_1776009882880_1776009881860",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776009882880/1776009881860.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -287,15 +339,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776085454556",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776085454556/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 2668,
       "first_frame": "1776082865583.jpeg",
       "last_frame": "1776084664941.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776085454556_1776085453695",
+          "run_id": "app_run_paramveer_testing_detection_results_1776085454556_1776085453695",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776085454556/1776085453695.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -313,15 +370,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776093057929",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776093057929/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 3201,
       "first_frame": "1776089974214.jpeg",
       "last_frame": "1776092096986.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776093057929_1776093057199",
+          "run_id": "app_run_paramveer_testing_detection_results_1776093057929_1776093057199",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776093057929/1776093057199.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -339,15 +401,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776096771959",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776096771959/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 3398,
       "first_frame": "1776093465253.jpeg",
       "last_frame": "1776095712967.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776096771959_1776096770701",
+          "run_id": "app_run_paramveer_testing_detection_results_1776096771959_1776096770701",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776096771959/1776096770701.json",
           "raw_output_format": "phone_detection_array_v1",
@@ -365,15 +432,20 @@
       "collection_folder": "paramveer_testing",
       "relative_path": "paramveer_testing/detection_results_1776140962748",
       "frames_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776140962748/CAPTURED_FRAMES",
-      "model_family": "latest_model",
       "frame_count": 1617,
       "first_frame": "1776139443032.jpeg",
       "last_frame": "1776140559655.jpeg",
-      "raw_outputs": [
+      "annotations": {
+        "segments": [],
+        "match_stats": []
+      },
+      "app_runs": [
         {
-          "run_id": "raw_paramveer_testing_detection_results_1776140962748_1776140961781",
+          "run_id": "app_run_paramveer_testing_detection_results_1776140962748_1776140961781",
+          "run_type": "app_detection_ocr",
           "source": "mobile_debug_app",
-          "model_family": "latest_model",
+          "detector_model_family": "latest_model",
+          "ocr_model_family": "latest_model",
           "algo_variant": "default",
           "raw_json_path": "/home/ec2-user/dataset/raw_data/paramveer_testing/detection_results_1776140962748/1776140961781.json",
           "raw_output_format": "phone_detection_array_v1",
