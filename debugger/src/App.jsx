@@ -338,21 +338,40 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {gtSegments.map((segment) => {
-                          const stat = gtStats.find((item) => item.match_id === segment.match_id);
-                          return (
-                            <tr key={segment.id || segment.match_id}>
-                              <td>{segment.match_id}</td>
-                              <td>{segment.start_frame}</td>
-                              <td>{segment.end_frame}</td>
-                              <td>{stat?.kills ?? ""}</td>
-                              <td>{stat?.is_alive ?? ""}</td>
-                            </tr>
-                          );
-                        })}
-                        {!gtSegments.length ? (
+                        {(gtSegments.length
+                          ? gtSegments.map((segment) => {
+                              const stat = gtStats.find(
+                                (item) => item.match_id === segment.match_id,
+                              );
+                              return {
+                                key: segment.id || segment.match_id,
+                                match_id: segment.match_id,
+                                start_frame: segment.start_frame,
+                                end_frame: segment.end_frame,
+                                kills: stat?.kills ?? "",
+                                is_alive: stat?.is_alive ?? "",
+                              };
+                            })
+                          : gtStats.map((stat) => ({
+                              key: stat.id || stat.match_id,
+                              match_id: stat.match_id,
+                              start_frame: "",
+                              end_frame: "",
+                              kills: stat.kills ?? "",
+                              is_alive: stat.is_alive ?? "",
+                            }))
+                        ).map((row) => (
+                          <tr key={row.key}>
+                            <td>{row.match_id}</td>
+                            <td>{row.start_frame}</td>
+                            <td>{row.end_frame}</td>
+                            <td>{row.kills}</td>
+                            <td>{row.is_alive}</td>
+                          </tr>
+                        ))}
+                        {!gtSegments.length && !gtStats.length ? (
                           <tr>
-                            <td colSpan="5">No ground truth segments yet</td>
+                            <td colSpan="5">No ground truth matches yet</td>
                           </tr>
                         ) : null}
                       </tbody>
