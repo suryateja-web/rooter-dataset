@@ -4,6 +4,8 @@ __pycache__/
 # Visualizer local deps/build output.
 visualizer/node_modules/
 visualizer/dist/
+annotator/node_modules/
+annotator/dist/
 
 # Raw media and phone outputs are too large/noisy for git.
 # Keep them in S3/local storage; this repo tracks the reproducibility layer.

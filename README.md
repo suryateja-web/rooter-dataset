@@ -45,6 +45,27 @@ Open:
 http://localhost:4100
 ```
 
+Run the dataset annotator:
+
+```bash
+cd /home/ec2-user/dataset/annotator
+npm install
+npm run build
+npm start
+```
+
+Open:
+
+```text
+http://localhost:4200
+```
+
+Annotation JSON files are saved under:
+
+```text
+annotations/<session_id>.json
+```
+
 Current convention:
 
 - app runs under `paramveer_testing/*` are tagged as `latest_model`
