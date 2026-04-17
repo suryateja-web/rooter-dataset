@@ -114,6 +114,111 @@ function readRunArtifact(run, name) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+function readImageSize(filePath) {
+  const buffer = fs.readFileSync(filePath);
+
+  if (
+    buffer.length >= 24 &&
+    buffer[0] === 0x89 &&
+    buffer.toString("ascii", 1, 4) === "PNG"
+  ) {
+    return {
+      width: buffer.readUInt32BE(16),
+      height: buffer.readUInt32BE(20),
+    };
+  }
+
+  if (buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    while (offset < buffer.length) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (marker >= 0xc0 && marker <= 0xc3) {
+        return {
+          width: buffer.readUInt16BE(offset + 7),
+          height: buffer.readUInt16BE(offset + 5),
+        };
+      }
+      offset += 2 + length;
+    }
+  }
+
+  return null;
+}
+
+function detectionRunFormat(session, rawJsonPath) {
+  const resolvedRawPath = path.resolve(rawJsonPath || "");
+  const appRun = session?.app_runs?.find(
+    (run) => path.resolve(run.raw_json_path || "") === resolvedRawPath,
+  );
+  return appRun?.raw_output_format || "";
+}
+
+function scaleBox(box, scaleX, scaleY) {
+  if (!box) return box;
+  if (Array.isArray(box)) {
+    return [
+      Math.round(Number(box[0] || 0) * scaleX),
+      Math.round(Number(box[1] || 0) * scaleY),
+      Math.round(Number(box[2] || 0) * scaleX),
+      Math.round(Number(box[3] || 0) * scaleY),
+    ];
+  }
+
+  return {
+    ...box,
+    left: Math.round(Number(box.left || 0) * scaleX),
+    top: Math.round(Number(box.top || 0) * scaleY),
+    right: Math.round(Number(box.right || 0) * scaleX),
+    bottom: Math.round(Number(box.bottom || 0) * scaleY),
+  };
+}
+
+function normalizeDetectionBoxes(detections, imageSize, rawOutputFormat) {
+  if (!imageSize || rawOutputFormat !== "phone_detection_array_v1") {
+    return {
+      detections,
+      coordinate_space: "raw",
+      source_size: null,
+      image_size: imageSize,
+    };
+  }
+
+  const sourceSize = { width: 640, height: 640 };
+  const scaleX = imageSize.width / sourceSize.width;
+  const scaleY = imageSize.height / sourceSize.height;
+
+  return {
+    coordinate_space: "image",
+    source_size: sourceSize,
+    image_size: imageSize,
+    detections: detections.map((detection) => {
+      const normalized = { ...detection };
+      if (detection.boundingBox) {
+        normalized.rawBoundingBox = detection.boundingBox;
+        normalized.boundingBox = scaleBox(detection.boundingBox, scaleX, scaleY);
+      }
+      if (detection.bbox) {
+        normalized.rawBbox = detection.bbox;
+        normalized.bbox = scaleBox(detection.bbox, scaleX, scaleY);
+      }
+      if (Array.isArray(detection.ocrBlocks)) {
+        normalized.ocrBlocks = detection.ocrBlocks.map((block) => ({
+          ...block,
+          rawRect: block.rect,
+          rect: block.rect ? scaleBox(block.rect, scaleX, scaleY) : block.rect,
+        }));
+      }
+      return normalized;
+    }),
+  };
+}
+
 function normalizePredictedSegments(result) {
   const matches = Array.isArray(result?.matches) ? result.matches : [];
   return matches
@@ -342,12 +447,27 @@ app.get("/api/mlflow/runs/:runId/detections", async (req, res) => {
     const data = await mlflowGet(
       `/api/2.0/mlflow/runs/get?run_id=${encodeURIComponent(req.params.runId)}`,
     );
+    const tags = tagsToObject(data.run.data?.tags || []);
     const runInput = readRunArtifact(data.run, "run_input.json");
     const rawDetections = readRawDetections(runInput?.raw_json_path);
     const frameName = String(req.query.frame || "");
+    const sessionId = tags.session_id || runInput?.session_id || "";
+    const session = sessionId ? getSession(sessionId) : null;
+    const framePath = session ? safeFramePath(session, frameName) : null;
+    const imageSize = framePath && fs.existsSync(framePath) ? readImageSize(framePath) : null;
+    const rawOutputFormat = detectionRunFormat(session, runInput?.raw_json_path);
+    const normalized = normalizeDetectionBoxes(
+      rawDetections.byFrame[frameName] || [],
+      imageSize,
+      rawOutputFormat,
+    );
+
     res.json({
       frame: frameName,
-      detections: rawDetections.byFrame[frameName] || [],
+      detections: normalized.detections,
+      coordinate_space: normalized.coordinate_space,
+      source_size: normalized.source_size,
+      image_size: normalized.image_size,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

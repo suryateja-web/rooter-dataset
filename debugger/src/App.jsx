@@ -125,6 +125,7 @@ function App() {
   const [frameOffset, setFrameOffset] = useState(0);
   const [selectedFrame, setSelectedFrame] = useState(null);
   const [detections, setDetections] = useState([]);
+  const [detectionMeta, setDetectionMeta] = useState(null);
   const [frameDataLoaded, setFrameDataLoaded] = useState(false);
   const [showDetections, setShowDetections] = useState(true);
   const [showOcr, setShowOcr] = useState(true);
@@ -191,6 +192,7 @@ function App() {
 
   useEffect(() => {
     setDetections([]);
+    setDetectionMeta(null);
     setFrameDataLoaded(false);
     setStateResolution(null);
     setStateResolutionLoaded(false);
@@ -207,6 +209,11 @@ function App() {
         )}`,
       );
       setDetections(data.detections || []);
+      setDetectionMeta({
+        coordinate_space: data.coordinate_space || "",
+        source_size: data.source_size || null,
+        image_size: data.image_size || null,
+      });
       setFrameDataLoaded(true);
     } catch (err) {
       setError(err.message);
@@ -688,6 +695,14 @@ function App() {
                       {number(filteredDetections.length)} detections,{" "}
                       {number(filteredOcrItems.length)} OCR items
                     </span>
+                    {detectionMeta?.coordinate_space ? (
+                      <span>
+                        boxes: {detectionMeta.coordinate_space}
+                        {detectionMeta.source_size && detectionMeta.image_size
+                          ? ` ${detectionMeta.source_size.width}x${detectionMeta.source_size.height} -> ${detectionMeta.image_size.width}x${detectionMeta.image_size.height}`
+                          : ""}
+                      </span>
+                    ) : null}
                     {!frameDataLoaded ? <div>Click Load Frame Data.</div> : null}
                     {showDetections ? (
                       <>
