@@ -21,11 +21,6 @@ function number(value) {
   return new Intl.NumberFormat("en-US").format(Number(value || 0));
 }
 
-function fmtTime(ms) {
-  if (!ms) return "";
-  return new Date(Number(ms)).toLocaleString();
-}
-
 function boxLabel(det) {
   const label = det?.category?.label || det?.label || "unknown";
   const conf = det?.category?.confidence ?? det?.confidence;
@@ -362,41 +357,6 @@ function App() {
       </section>
 
       <div className="layout">
-        <section className="runs">
-          <div className="section-title">
-            <h2>Runs</h2>
-            <span>{number(runs.length)}</span>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Session</th>
-                  <th>Run</th>
-                  <th>Matches</th>
-                  <th>Return</th>
-                  <th>Start</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((run) => (
-                  <tr
-                    key={run.info.run_id}
-                    className={run.info.run_id === selectedRunId ? "active" : ""}
-                    onClick={() => setSelectedRunId(run.info.run_id)}
-                  >
-                    <td>{run.tags.session_id || ""}</td>
-                    <td title={run.info.run_id}>{run.info.run_name || run.info.run_id}</td>
-                    <td>{run.metrics.match_count ?? ""}</td>
-                    <td>{run.metrics.returncode ?? ""}</td>
-                    <td>{fmtTime(run.info.start_time)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
         <section className="workspace">
           {debugData ? (
             <>

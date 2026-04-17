@@ -134,13 +134,9 @@ label {
 }
 
 .layout {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(440px, 34vw) 1fr;
   padding-top: 10px;
 }
 
-.runs,
 .workspace {
   min-width: 0;
 }
@@ -445,7 +441,6 @@ figcaption {
 }
 
 @media (max-width: 1150px) {
-  .layout,
   .compare-grid,
   .debug-frame {
     grid-template-columns: 1fr;
