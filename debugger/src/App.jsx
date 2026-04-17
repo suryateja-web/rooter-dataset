@@ -70,6 +70,51 @@ function segmentHasRange(segment) {
   return segment.start_frame !== null && segment.start_frame !== "" && segment.end_frame !== null && segment.end_frame !== "";
 }
 
+function firstPresent(object, keys) {
+  for (const key of keys) {
+    if (object && object[key] !== undefined && object[key] !== null) {
+      return object[key];
+    }
+  }
+  return "";
+}
+
+function renderValue(value) {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
+function labelsFromRuleChecks(ruleChecks) {
+  const labels = new Map();
+  for (const check of Object.values(ruleChecks || {})) {
+    for (const item of check?.labels || []) {
+      labels.set(item.label, item.confidence);
+    }
+  }
+  return [...labels.entries()].map(([label, confidence]) => ({ label, confidence }));
+}
+
+function passedLabelsFromRuleChecks(ruleChecks) {
+  const passed = {};
+  for (const [state, check] of Object.entries(ruleChecks || {})) {
+    passed[state] = check?.present_labels || [];
+  }
+  return passed;
+}
+
+function statePassStatus(check) {
+  if (!check) return "";
+  if (check.base_match) return "base match";
+  const reasons = [];
+  if (!check.has_all) reasons.push("missing required_all");
+  if (!check.has_any) reasons.push("missing required_any");
+  if (!check.no_forbidden) reasons.push("forbidden label");
+  return reasons.join(", ") || "filtered by run logic";
+}
+
 function App() {
   const [experiments, setExperiments] = useState([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState("");
@@ -83,6 +128,8 @@ function App() {
   const [frameDataLoaded, setFrameDataLoaded] = useState(false);
   const [showDetections, setShowDetections] = useState(true);
   const [showOcr, setShowOcr] = useState(true);
+  const [stateResolution, setStateResolution] = useState(null);
+  const [stateResolutionLoaded, setStateResolutionLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
   const [labelFilter, setLabelFilter] = useState("");
   const [error, setError] = useState("");
@@ -145,6 +192,8 @@ function App() {
   useEffect(() => {
     setDetections([]);
     setFrameDataLoaded(false);
+    setStateResolution(null);
+    setStateResolutionLoaded(false);
     setLabelFilter("");
   }, [selectedRunId, selectedFrame]);
 
@@ -159,6 +208,24 @@ function App() {
       );
       setDetections(data.detections || []);
       setFrameDataLoaded(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setStatus("Ready");
+    }
+  }
+
+  async function loadStateResolution() {
+    if (!selectedRunId || !selectedFrame) return;
+    setStatus("Loading state why");
+    try {
+      const data = await fetchJson(
+        `/api/mlflow/runs/${selectedRunId}/state-resolution?frame=${encodeURIComponent(
+          selectedFrame.name,
+        )}`,
+      );
+      setStateResolution(data);
+      setStateResolutionLoaded(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -194,6 +261,31 @@ function App() {
     selectedFrame && debugData?.session
       ? `${API}${selectedFrame.url}`
       : "";
+  const frameWhy = stateResolution?.resolution || null;
+  const finalState = firstPresent(frameWhy, [
+    "final_state",
+    "assigned_state",
+    "state",
+    "resolved_state",
+  ]);
+  const candidateStates = firstPresent(frameWhy, [
+    "candidate_states",
+    "candidates",
+    "applied_states",
+  ]);
+  const detectedLabels =
+    firstPresent(frameWhy, [
+      "labels",
+      "detected_labels",
+      "label_confidences",
+      "labels_by_frame",
+    ]) || labelsFromRuleChecks(frameWhy?.rule_checks);
+  const passedLabels =
+    firstPresent(frameWhy, [
+      "passed_labels",
+      "labels_passing_threshold",
+      "present_labels",
+    ]) || passedLabelsFromRuleChecks(frameWhy?.rule_checks);
 
   return (
     <main>
@@ -352,7 +444,10 @@ function App() {
                 <div className="legend">
                   <span>black = ground truth</span>
                   <span>white = prediction</span>
-                  <span>Current run may only have match stats, not frame ranges.</span>
+                  <span>
+                    state_resolution:{" "}
+                    {debugData.has_state_resolution ? "available" : "not in this run"}
+                  </span>
                 </div>
               </section>
 
@@ -458,6 +553,12 @@ function App() {
                   <div className="pager">
                     <button disabled={!selectedFrame} onClick={loadDetections}>
                       {frameDataLoaded ? "Reload Frame Data" : "Load Frame Data"}
+                    </button>
+                    <button
+                      disabled={!selectedFrame || !debugData.has_state_resolution}
+                      onClick={loadStateResolution}
+                    >
+                      {stateResolutionLoaded ? "Reload State Why" : "Load State Why"}
                     </button>
                     <button
                       className={showDetections ? "toggle active-toggle" : "toggle"}
@@ -607,6 +708,96 @@ function App() {
                       </>
                     ) : null}
                   </div>
+                </div>
+
+                <div className="state-resolution">
+                  <div className="state-summary">
+                    <strong>State resolution</strong>
+                    <span>
+                      {selectedFrame ? selectedFrame.name : "No frame"}{" "}
+                      {stateResolutionLoaded ? "" : "- click Load State Why"}
+                    </span>
+                  </div>
+                  {stateResolutionLoaded && !stateResolution?.available ? (
+                    <div>No state_resolution.json artifact in this run.</div>
+                  ) : null}
+                  {stateResolutionLoaded && stateResolution?.available && !frameWhy ? (
+                    <div>No state-resolution entry found for this frame.</div>
+                  ) : null}
+                  {frameWhy ? (
+                    <div className="state-grid">
+                      <div>
+                        <b>Final state</b>
+                        <span>{renderValue(finalState)}</span>
+                      </div>
+                      <div>
+                        <b>Candidate states</b>
+                        <span>{renderValue(candidateStates)}</span>
+                      </div>
+                      <div>
+                        <b>Passed labels</b>
+                        <span>{renderValue(passedLabels)}</span>
+                      </div>
+                      <div>
+                        <b>Detected labels</b>
+                        <span>{renderValue(detectedLabels)}</span>
+                      </div>
+                    </div>
+                  ) : null}
+                  {frameWhy?.rule_checks ? (
+                    <div className="rule-table-wrap">
+                      <table className="rule-table">
+                        <thead>
+                          <tr>
+                            <th>State</th>
+                            <th>Base</th>
+                            <th>All</th>
+                            <th>Any</th>
+                            <th>Forbidden</th>
+                            <th>Why</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(frameWhy.rule_checks).map(([state, check]) => (
+                            <tr
+                              key={state}
+                              className={
+                                state === finalState
+                                  ? "active"
+                                  : frameWhy.candidate_states?.includes(state)
+                                    ? "candidate"
+                                    : ""
+                              }
+                            >
+                              <td>{state}</td>
+                              <td>{check.base_match ? "yes" : "no"}</td>
+                              <td>{check.has_all ? "yes" : check.required_all_missing?.join(", ")}</td>
+                              <td>{check.has_any ? "yes" : "no"}</td>
+                              <td>{check.no_forbidden ? "none" : check.forbidden_present?.join(", ")}</td>
+                              <td>{statePassStatus(check)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                  {stateResolution?.target_state_order?.length ? (
+                    <div className="state-priority">
+                      Priority: {stateResolution.target_state_order.join(" -> ")}
+                    </div>
+                  ) : null}
+                  {frameWhy ? (
+                    <details>
+                      <summary>Full frame resolution JSON</summary>
+                      <pre>{JSON.stringify(frameWhy, null, 2)}</pre>
+                    </details>
+                  ) : null}
+                  {stateResolution?.rules ? (
+                    <details>
+                      <summary>Rule config</summary>
+                      <pre>{JSON.stringify(stateResolution.rules, null, 2)}</pre>
+                    </details>
+                  ) : null}
                 </div>
 
                 <div className="frame-grid">

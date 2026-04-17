@@ -329,6 +329,83 @@ tbody tr.active {
   padding: 7px;
 }
 
+.state-resolution {
+  border: 1px solid #000;
+  margin-top: 8px;
+  padding: 7px;
+}
+
+.state-summary {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.state-summary span {
+  color: #333;
+}
+
+.state-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+.state-grid div {
+  border: 1px solid #ddd;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px;
+}
+
+.state-grid span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-table-wrap {
+  border: 1px solid #000;
+  margin-top: 8px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.rule-table .candidate {
+  background: #f3f3f3;
+}
+
+.state-priority {
+  border-top: 1px solid #ddd;
+  color: #333;
+  margin-top: 7px;
+  overflow: hidden;
+  padding-top: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+details {
+  border-top: 1px solid #ddd;
+  margin-top: 7px;
+  padding-top: 6px;
+}
+
+summary {
+  cursor: pointer;
+}
+
+pre {
+  font-family: monospace;
+  font-size: 11px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
 .frame-grid {
   display: grid;
   gap: 7px;
@@ -376,6 +453,10 @@ figcaption {
 
   .facts {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .state-grid {
+    grid-template-columns: 1fr;
   }
 
   .selectors,

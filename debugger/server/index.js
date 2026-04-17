@@ -22,6 +22,7 @@ const MLFLOW_ARTIFACT_ROOT =
 let manifestCache = null;
 let manifestMtimeMs = 0;
 const rawDetectionCache = new Map();
+const stateResolutionCache = new Map();
 
 function readJsonIfExists(filePath, fallback = null) {
   if (!filePath || !fs.existsSync(filePath)) return fallback;
@@ -183,6 +184,73 @@ function readRawDetections(rawJsonPath) {
   return rawDetectionCache.get(key);
 }
 
+function readStateResolution(run) {
+  const artifactPath = path.join(
+    runArtifactRoot(run),
+    "postprocessor_debug",
+    "state_resolution.json",
+  );
+  if (!fs.existsSync(artifactPath)) return null;
+
+  const stat = fs.statSync(artifactPath);
+  const key = `${artifactPath}:${stat.mtimeMs}`;
+  if (!stateResolutionCache.has(key)) {
+    stateResolutionCache.clear();
+    stateResolutionCache.set(key, JSON.parse(fs.readFileSync(artifactPath, "utf8")));
+  }
+  return stateResolutionCache.get(key);
+}
+
+function findFrameResolution(stateResolution, frameName) {
+  if (!stateResolution || !frameName) return null;
+
+  if (Array.isArray(stateResolution)) {
+    return stateResolution.find((item) => item?.frame === frameName) || null;
+  }
+
+  const candidates = [
+    stateResolution.frames,
+    stateResolution.frame_resolution,
+    stateResolution.frame_resolutions,
+    stateResolution.resolutions,
+    stateResolution.per_frame,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      const match = candidate.find((item) => item?.frame === frameName);
+      if (match) return match;
+    }
+    if (candidate && typeof candidate === "object" && candidate[frameName]) {
+      return candidate[frameName];
+    }
+  }
+
+  if (stateResolution[frameName]) return stateResolution[frameName];
+  return null;
+}
+
+function stateRulesFromResolution(stateResolution) {
+  if (!stateResolution || typeof stateResolution !== "object") return null;
+
+  const explicitRules =
+    stateResolution.rules ||
+    stateResolution.rule_config ||
+    stateResolution.state_rules;
+  if (explicitRules) return explicitRules;
+
+  if (!stateResolution.per_state || typeof stateResolution.per_state !== "object") {
+    return null;
+  }
+
+  return Object.fromEntries(
+    Object.entries(stateResolution.per_state).map(([state, data]) => [
+      state,
+      data?.rule || { rule_found: Boolean(data?.rule_found) },
+    ]),
+  );
+}
+
 function listFrames(framesPath) {
   return fs
     .readdirSync(framesPath, { withFileTypes: true })
@@ -260,6 +328,9 @@ app.get("/api/mlflow/runs/:runId/debug", async (req, res) => {
       session,
       annotation,
       predicted_segments: normalizePredictedSegments(result),
+      has_state_resolution: artifactNames.includes(
+        "postprocessor_debug/state_resolution.json",
+      ),
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -277,6 +348,35 @@ app.get("/api/mlflow/runs/:runId/detections", async (req, res) => {
     res.json({
       frame: frameName,
       detections: rawDetections.byFrame[frameName] || [],
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/mlflow/runs/:runId/state-resolution", async (req, res) => {
+  try {
+    const data = await mlflowGet(
+      `/api/2.0/mlflow/runs/get?run_id=${encodeURIComponent(req.params.runId)}`,
+    );
+    const stateResolution = readStateResolution(data.run);
+    const frameName = String(req.query.frame || "");
+    const resolution = findFrameResolution(stateResolution, frameName);
+
+    res.json({
+      available: Boolean(stateResolution),
+      frame: frameName,
+      target_state_order:
+        stateResolution?.target_state_order ||
+        stateResolution?.target_states ||
+        stateResolution?.state_order ||
+        [],
+      rules: stateRulesFromResolution(stateResolution),
+      top_level_keys:
+        stateResolution && typeof stateResolution === "object"
+          ? Object.keys(stateResolution)
+          : [],
+      resolution,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
