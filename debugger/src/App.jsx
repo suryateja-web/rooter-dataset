@@ -5,7 +5,8 @@ const API =
   (window.location.port === "5175"
     ? `${window.location.protocol}//${window.location.hostname}:4300`
     : window.location.origin);
-const PAGE_SIZE = 72;
+const PAGE_SIZE = 36;
+const PAGE_DEBOUNCE_MS = 180;
 
 async function fetchJson(path) {
   const response = await fetch(`${API}${path}`);
@@ -122,6 +123,7 @@ function App() {
   const [selectedRunId, setSelectedRunId] = useState("");
   const [debugData, setDebugData] = useState(null);
   const [frames, setFrames] = useState({ total: 0, offset: 0, frames: [] });
+  const [requestedFrameOffset, setRequestedFrameOffset] = useState(0);
   const [frameOffset, setFrameOffset] = useState(0);
   const [selectedFrame, setSelectedFrame] = useState(null);
   const [detections, setDetections] = useState([]);
@@ -167,6 +169,7 @@ function App() {
     if (!selectedRunId) return;
     setStatus("Loading run");
     setDebugData(null);
+    setRequestedFrameOffset(0);
     setFrameOffset(0);
     setSelectedFrame(null);
     setDetections([]);
@@ -177,17 +180,37 @@ function App() {
   }, [selectedRunId]);
 
   useEffect(() => {
-    if (!debugData?.session?.session_id) return;
-    fetchJson(
-      `/api/sessions/${encodeURIComponent(
+    const timer = window.setTimeout(() => {
+      setFrameOffset(requestedFrameOffset);
+    }, PAGE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [requestedFrameOffset]);
+
+  useEffect(() => {
+    if (!debugData?.session?.session_id) return undefined;
+    const controller = new AbortController();
+    setStatus("Loading frames");
+    fetch(
+      `${API}/api/sessions/${encodeURIComponent(
         debugData.session.session_id,
       )}/frames?offset=${frameOffset}&limit=${PAGE_SIZE}`,
+      { signal: controller.signal },
     )
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.json();
+      })
       .then((data) => {
         setFrames(data);
         if (data.frames?.[0]) setSelectedFrame(data.frames[0]);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => {
+        if (err.name !== "AbortError") setError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setStatus("Ready");
+      });
+    return () => controller.abort();
   }, [debugData?.session?.session_id, frameOffset]);
 
   useEffect(() => {
@@ -594,19 +617,25 @@ function App() {
                       </select>
                     </label>
                     <button
-                      disabled={frameOffset === 0}
-                      onClick={() => setFrameOffset(Math.max(0, frameOffset - PAGE_SIZE))}
+                      disabled={requestedFrameOffset === 0}
+                      onClick={() =>
+                        setRequestedFrameOffset(
+                          Math.max(0, requestedFrameOffset - PAGE_SIZE),
+                        )
+                      }
                     >
                       Prev
                     </button>
                     <span>
-                      {number(frameOffset + 1)}-
-                      {number(Math.min(frameOffset + PAGE_SIZE, frames.total))} of{" "}
+                      {number(requestedFrameOffset + 1)}-
+                      {number(Math.min(requestedFrameOffset + PAGE_SIZE, frames.total))} of{" "}
                       {number(frames.total)}
                     </span>
                     <button
-                      disabled={frameOffset + PAGE_SIZE >= frames.total}
-                      onClick={() => setFrameOffset(frameOffset + PAGE_SIZE)}
+                      disabled={requestedFrameOffset + PAGE_SIZE >= frames.total}
+                      onClick={() =>
+                        setRequestedFrameOffset(requestedFrameOffset + PAGE_SIZE)
+                      }
                     >
                       Next
                     </button>
@@ -822,7 +851,12 @@ function App() {
                       className={selectedFrame?.name === frame.name ? "selected" : ""}
                       onClick={() => setSelectedFrame(frame)}
                     >
-                      <img loading="lazy" src={`${API}${frame.url}`} alt={frame.name} />
+                      <img
+                        decoding="async"
+                        loading="lazy"
+                        src={`${API}${frame.thumb_url || frame.url}`}
+                        alt={frame.name}
+                      />
                       <figcaption>
                         {frame.index} {frame.name}
                       </figcaption>

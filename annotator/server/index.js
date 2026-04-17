@@ -1,7 +1,9 @@
 import express from "express";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +14,8 @@ const DATASET_ROOT = process.env.DATASET_ROOT || "/home/ec2-user/dataset";
 const MANIFEST_PATH =
   process.env.MANIFEST_PATH || path.join(DATASET_ROOT, "manifest.json");
 const RAW_ROOT = process.env.RAW_ROOT || path.join(DATASET_ROOT, "raw_data");
+const THUMB_CACHE_ROOT =
+  process.env.THUMB_CACHE_ROOT || path.join(DATASET_ROOT, ".cache", "thumbnails");
 const ANNOTATIONS_ROOT =
   process.env.ANNOTATIONS_ROOT || path.join(DATASET_ROOT, "annotations");
 
@@ -109,6 +113,27 @@ function safeFramePath(session, frameName) {
   return framePath;
 }
 
+async function cachedThumbnail(framePath, size = 180) {
+  const stat = fs.statSync(framePath);
+  const width = Math.min(480, Math.max(80, Number(size) || 180));
+  const key = crypto
+    .createHash("sha1")
+    .update(`${framePath}:${stat.mtimeMs}:${stat.size}:${width}`)
+    .digest("hex");
+  const thumbPath = path.join(THUMB_CACHE_ROOT, `${key}.jpg`);
+  if (!fs.existsSync(thumbPath)) {
+    fs.mkdirSync(THUMB_CACHE_ROOT, { recursive: true });
+    const tempPath = `${thumbPath}.tmp-${process.pid}`;
+    await sharp(framePath)
+      .rotate()
+      .resize({ width, withoutEnlargement: true })
+      .jpeg({ quality: 55, mozjpeg: true })
+      .toFile(tempPath);
+    fs.renameSync(tempPath, thumbPath);
+  }
+  return thumbPath;
+}
+
 function summarizeSession(session) {
   const annotation = readAnnotation(session.session_id);
   return {
@@ -182,8 +207,33 @@ app.get("/api/sessions/:sessionId/frames", (req, res) => {
       url: `/api/sessions/${encodeURIComponent(
         session.session_id,
       )}/frames/${encodeURIComponent(name)}`,
+      thumb_url: `/api/sessions/${encodeURIComponent(
+        session.session_id,
+      )}/frames/${encodeURIComponent(name)}/thumb`,
     })),
   });
+});
+
+app.get("/api/sessions/:sessionId/frames/:frameName/thumb", async (req, res) => {
+  const session = getSession(req.params.sessionId);
+  if (!session) {
+    res.status(404).json({ error: "Session not found" });
+    return;
+  }
+  const framePath = safeFramePath(session, req.params.frameName);
+  if (!framePath || !fs.existsSync(framePath)) {
+    res.status(404).json({ error: "Frame not found" });
+    return;
+  }
+
+  try {
+    const thumbPath = await cachedThumbnail(framePath, req.query.size);
+    res.set("Cache-Control", "public, max-age=86400");
+    res.type("jpg");
+    res.sendFile(thumbPath);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get("/api/sessions/:sessionId/frames/:frameName", (req, res) => {
@@ -197,6 +247,7 @@ app.get("/api/sessions/:sessionId/frames/:frameName", (req, res) => {
     res.status(404).json({ error: "Frame not found" });
     return;
   }
+  res.set("Cache-Control", "public, max-age=3600");
   res.sendFile(framePath);
 });
 
@@ -227,4 +278,3 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Manifest: ${MANIFEST_PATH}`);
   console.log(`Annotations: ${ANNOTATIONS_ROOT}`);
 });
-

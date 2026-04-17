@@ -5,7 +5,8 @@ const API =
   (window.location.port === "5173"
     ? `${window.location.protocol}//${window.location.hostname}:4100`
     : window.location.origin);
-const PAGE_SIZE = 60;
+const PAGE_SIZE = 36;
+const PAGE_DEBOUNCE_MS = 180;
 
 async function fetchJson(path) {
   const response = await fetch(`${API}${path}`);
@@ -28,6 +29,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [collection, setCollection] = useState("");
   const [model, setModel] = useState("");
+  const [requestedFrameOffset, setRequestedFrameOffset] = useState(0);
   const [frameOffset, setFrameOffset] = useState(0);
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
@@ -78,6 +80,7 @@ function App() {
   useEffect(() => {
     if (!selectedSessionId) return;
     let live = true;
+    setRequestedFrameOffset(0);
     setFrameOffset(0);
     setLoading("session");
     fetchJson(`/api/sessions/${encodeURIComponent(selectedSessionId)}`)
@@ -96,22 +99,30 @@ function App() {
   }, [selectedSessionId]);
 
   useEffect(() => {
-    if (!selectedSessionId) return;
-    let live = true;
-    fetchJson(
-      `/api/sessions/${encodeURIComponent(
+    const timer = window.setTimeout(() => {
+      setFrameOffset(requestedFrameOffset);
+    }, PAGE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [requestedFrameOffset]);
+
+  useEffect(() => {
+    if (!selectedSessionId) return undefined;
+    const controller = new AbortController();
+    fetch(
+      `${API}/api/sessions/${encodeURIComponent(
         selectedSessionId,
       )}/frames?offset=${frameOffset}&limit=${PAGE_SIZE}`,
+      { signal: controller.signal },
     )
-      .then((data) => {
-        if (live) setFrames(data);
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.json();
       })
+      .then(setFrames)
       .catch((err) => {
-        if (live) setError(err.message);
+        if (err.name !== "AbortError") setError(err.message);
       });
-    return () => {
-      live = false;
-    };
+    return () => controller.abort();
   }, [selectedSessionId, frameOffset]);
 
   const collections = useMemo(
@@ -289,21 +300,25 @@ function App() {
                 <h3>Frames</h3>
                 <div className="pager">
                   <button
-                    disabled={frameOffset === 0}
+                    disabled={requestedFrameOffset === 0}
                     onClick={() =>
-                      setFrameOffset(Math.max(0, frameOffset - PAGE_SIZE))
+                      setRequestedFrameOffset(
+                        Math.max(0, requestedFrameOffset - PAGE_SIZE),
+                      )
                     }
                   >
                     Prev
                   </button>
                   <span>
-                    {number(frameOffset + 1)}-
-                    {number(Math.min(frameOffset + PAGE_SIZE, frames.total))} of{" "}
+                    {number(requestedFrameOffset + 1)}-
+                    {number(Math.min(requestedFrameOffset + PAGE_SIZE, frames.total))} of{" "}
                     {number(frames.total)}
                   </span>
                   <button
-                    disabled={frameOffset + PAGE_SIZE >= frames.total}
-                    onClick={() => setFrameOffset(frameOffset + PAGE_SIZE)}
+                    disabled={requestedFrameOffset + PAGE_SIZE >= frames.total}
+                    onClick={() =>
+                      setRequestedFrameOffset(requestedFrameOffset + PAGE_SIZE)
+                    }
                   >
                     Next
                   </button>
@@ -314,8 +329,9 @@ function App() {
                 {frames.frames.map((frame) => (
                   <figure key={frame.name}>
                     <img
+                      decoding="async"
                       loading="lazy"
-                      src={`${API}${frame.url}`}
+                      src={`${API}${frame.thumb_url || frame.url}`}
                       alt={frame.name}
                     />
                     <figcaption>
